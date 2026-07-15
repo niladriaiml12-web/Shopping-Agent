@@ -31,6 +31,8 @@ class MessageItem(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[MessageItem]
+    session_id: Optional[str] = None
+
 
 
 @app.get("/api/products")
@@ -126,13 +128,25 @@ def run_chat(request: ChatRequest):
         # Convert Pydantic request list of dicts to standard python list of dicts
         messages_input = [{"role": msg.role, "content": msg.content} for msg in request.messages]
         
-        # Invoke LangChain agent
-        result = agent.invoke({"messages": messages_input})
+        # Invoke LangChain agent with session_id
+        result = agent.invoke({"messages": messages_input, "session_id": request.session_id})
         
         # Return the last response
         last_message = result["messages"][-1]
         
-        return {"response": last_message.content}
+        # Try to parse the structured JSON payload
+        import json
+        try:
+            payload = json.loads(last_message.content)
+            return {
+                "response": payload.get("response", ""),
+                "ui_metadata": payload.get("ui_metadata", {"type": "text"})
+            }
+        except Exception:
+            return {
+                "response": last_message.content,
+                "ui_metadata": {"type": "text"}
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

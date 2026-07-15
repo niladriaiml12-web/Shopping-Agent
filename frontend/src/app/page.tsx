@@ -21,6 +21,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [sessionId, setSessionId] = useState("");
 
   const chatSectionRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +43,8 @@ export default function Home() {
 
   // Run on mount
   useEffect(() => {
+    // Generate session ID
+    setSessionId("sess_" + Math.random().toString(36).substring(2, 15));
     refreshOrders();
   }, []);
 
@@ -52,11 +55,11 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // 2. Post to API
+      // 2. Post to API with session_id
       const res = await fetch("http://127.0.0.1:8000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: updatedMessages, session_id: sessionId }),
       });
 
       if (!res.ok) {
@@ -65,8 +68,8 @@ export default function Home() {
 
       const data = await res.json();
       
-      // 3. Append Assistant response
-      setMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
+      // 3. Append Assistant response (with ui_metadata)
+      setMessages((prev) => [...prev, { role: "assistant", content: data.response, ui_metadata: data.ui_metadata }]);
       
       // 4. If this is an order confirmation, refresh orders list after short delay
       if (data.response.toLowerCase().includes("confirmed")) {
@@ -133,18 +136,18 @@ export default function Home() {
               <div className="lg:col-span-7 flex flex-col select-none text-left">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full max-w-max">
                   <Sparkles className="h-3.5 w-3.5" />
-                  <span>Shopping Ka Wingman is Live</span>
+                  <span>Your Personal AI Buying Agent</span>
                 </div>
                 
                 <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mt-6 text-[#1E293B] leading-[1.05]">
-                  Shopping ka Scene <span className="text-blue-600">Simple</span> Bana.
+                  Stop <span className="text-blue-600">Searching</span>.
                 </h1>
                 <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight text-[#1E293B] leading-[1.1] mt-2">
-                  AI Karega <span className="text-cyan-500">Saara Kaam</span>.
+                  Start <span className="text-cyan-500">Deciding</span>.
                 </h2>
                 
                 <p className="mt-6 text-lg md:text-xl text-[#64748B] max-w-xl font-medium leading-relaxed">
-                  Tell me kya chahiye. Main search karunga, reviews padhunga, best option recommend karunga, aur place karwa dunga order.
+                  BuyForYou exists to remove decision fatigue. We interview you, analyze reviews, calculate Trust Scores, and find exactly what matches your requirements.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-4">
